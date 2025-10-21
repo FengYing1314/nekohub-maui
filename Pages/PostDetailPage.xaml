@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="nekohub_maui.Pages.PostDetailPage"
+             Title="Post Detail">
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="编辑" Order="Primary" Priority="0" Command="{Binding EditCommand}" />
+    </ContentPage.ToolbarItems>
+
+    <Grid Padding="16" RowDefinitions="Auto,Auto,Auto,*">
+        <Label Grid.Row="0" Text="{Binding Post.Title}" FontSize="24" FontAttributes="Bold" />
+        <StackLayout Grid.Row="1" Orientation="Horizontal" Spacing="8">
+            <Label Text="{Binding Post.IsPublished, Converter={StaticResource BoolToStatusConverter}}"
+                   TextColor="{Binding Post.IsPublished, Converter={StaticResource BoolToStatusColorConverter}}" />
+            <Label Text="·" />
+            <Label Text="{Binding Post.UpdatedAt, StringFormat='更新于 {0:yyyy-MM-dd HH:mm}'}" TextColor="Gray" />
+        </StackLayout>
+        <StackLayout Grid.Row="2" Orientation="Horizontal" Spacing="12">
+            <Button Text="发布/取消发布" Command="{Binding PublishToggleCommand}" />
+            <Button Text="删除" TextColor="Red" Command="{Binding DeleteCommand}" />
+        </StackLayout>
+        <ScrollView Grid.Row="3">
+            <Label Text="{Binding Post.Content}" LineBreakMode="WordWrap" />
+        </ScrollView>
+    </Grid>
+</ContentPage>
