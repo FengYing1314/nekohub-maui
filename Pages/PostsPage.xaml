@@ -8,20 +8,8 @@
         <ToolbarItem Text="新建" Priority="0" Order="Primary" Command="{Binding CreateCommand}" />
     </ContentPage.ToolbarItems>
 
-    <Grid RowDefinitions="Auto,Auto,Auto,*" Padding="12">
-        <!-- App info banner -->
-        <Frame Grid.Row="0" Padding="10" BackgroundColor="#EEF5FF" BorderColor="#CDE1FF" HasShadow="False">
-            <Grid ColumnDefinitions="*,Auto">
-                <Label Text="nekohub-maui" FontAttributes="Bold" FontSize="20" />
-                <StackLayout Grid.Column="1" Orientation="Horizontal" Spacing="10" HorizontalOptions="End">
-                    <Label x:Name="PlatformLabel" TextColor="#555" FontSize="12" />
-                    <Label x:Name="VersionLabel" TextColor="#555" FontSize="12" />
-                </StackLayout>
-            </Grid>
-        </Frame>
-
-        <!-- Search and filter row -->
-        <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="8">
+    <Grid RowDefinitions="Auto,Auto,*" Padding="12">
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="8">
             <SearchBar x:Name="Search" Grid.Column="0" Placeholder="搜索标题或内容" Text="{Binding SearchText}" SearchCommand="{Binding SearchCommand}" AutomationProperties.Name="搜索" />
             <Button Grid.Column="1" Text="清空" Command="{Binding ClearSearchCommand}" AutomationProperties.Name="清空搜索" />
             <Picker Grid.Column="2" Title="筛选" SelectedIndex="0" SelectedIndexChanged="OnFilterChanged" AutomationProperties.Name="筛选">
@@ -43,7 +31,7 @@
             </Picker>
         </Grid>
 
-        <RefreshView Grid.Row="2" Grid.RowSpan="2" IsRefreshing="{Binding IsRefreshing}" Command="{Binding RefreshCommand}">
+        <RefreshView Grid.Row="1" Grid.RowSpan="2" IsRefreshing="{Binding IsRefreshing}" Command="{Binding RefreshCommand}">
             <Grid RowDefinitions="Auto,*,Auto">
                 <Label Grid.Row="0" TextColor="Red" Text="{Binding ErrorMessage}" IsVisible="{Binding ErrorMessage, Converter={StaticResource IsNotNullConverter}}" />
                 <CollectionView Grid.Row="1" ItemsSource="{Binding Items}" SelectionMode="Single" SelectedItem="{Binding SelectedPost, Mode=TwoWay}">
