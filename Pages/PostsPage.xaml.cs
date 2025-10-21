@@ -1,3 +1,5 @@
+using Microsoft.Maui.ApplicationModel;
+using Microsoft.Maui.Devices;
 using nekohub_maui.ViewModels;
 
 namespace nekohub_maui.Pages;
@@ -10,6 +12,16 @@ public partial class PostsPage : ContentPage
     {
         InitializeComponent();
         BindingContext = _vm = vm;
+
+        try
+        {
+            VersionLabel.Text = $"v{AppInfo.Current.VersionString} (build {AppInfo.Current.BuildString})";
+            PlatformLabel.Text = DeviceInfo.Platform.ToString();
+        }
+        catch
+        {
+            // ignore any platform info errors
+        }
     }
 
     protected override async void OnAppearing()
