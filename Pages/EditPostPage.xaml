@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="nekohub_maui.Pages.EditPostPage"
+             Title="编辑文章">
+
+    <Grid Padding="16" RowDefinitions="Auto,Auto,*,Auto,Auto">
+        <VerticalStackLayout Grid.Row="0" Spacing="4">
+            <Label Text="标题" />
+            <Entry Text="{Binding Title}" Placeholder="输入标题" />
+            <VerticalStackLayout Spacing="2">
+                <Label TextColor="Red" FontSize="12" Text="{Binding TitleErrors[0]}" IsVisible="{Binding TitleErrors.Count, Converter={StaticResource GreaterThanZeroConverter}}" />
+            </VerticalStackLayout>
+        </VerticalStackLayout>
+
+        <VerticalStackLayout Grid.Row="1" Spacing="4">
+            <Label Text="内容" />
+            <Editor Text="{Binding Content}" AutoSize="TextChanges" HeightRequest="200" />
+            <VerticalStackLayout Spacing="2">
+                <Label TextColor="Red" FontSize="12" Text="{Binding ContentErrors[0]}" IsVisible="{Binding ContentErrors.Count, Converter={StaticResource GreaterThanZeroConverter}}" />
+            </VerticalStackLayout>
+        </VerticalStackLayout>
+
+        <HorizontalStackLayout Grid.Row="2" Spacing="8">
+            <Label Text="发布" VerticalOptions="Center" />
+            <Switch IsToggled="{Binding IsPublished}" />
+        </HorizontalStackLayout>
+
+        <Label Grid.Row="3" TextColor="Red" Text="{Binding ErrorMessage}" IsVisible="{Binding ErrorMessage, Converter={StaticResource IsNotNullConverter}}" />
+
+        <Button Grid.Row="4" Text="保存" Command="{Binding SaveCommand}" IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBoolConverter}}">
+            <Button.Triggers>
+                <DataTrigger TargetType="Button" Binding="{Binding IsBusy}" Value="True">
+                    <Setter Property="Text" Value="保存中..." />
+                </DataTrigger>
+            </Button.Triggers>
+        </Button>
+    </Grid>
+</ContentPage>
