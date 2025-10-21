@@ -1,0 +1,176 @@
+name: Build and Release (Windows + Android)
+
+on:
+  workflow_dispatch:
+    inputs:
+      versionPrefix:
+        description: Base version prefix (e.g., 1.0)
+        required: false
+        default: "1.0"
+  push:
+    branches: [ "main" ]
+
+permissions:
+  contents: write
+
+jobs:
+  version:
+    name: Compute Version
+    runs-on: ubuntu-latest
+    outputs:
+      display: ${{ steps.set.outputs.display }}
+      build: ${{ steps.set.outputs.build }}
+      tag: ${{ steps.set.outputs.tag }}
+      name: ${{ steps.set.outputs.name }}
+    steps:
+      - name: Compute version strings
+        id: set
+        shell: bash
+        run: |
+          VERSION_PREFIX="${{ github.event.inputs.versionPrefix }}"
+          if [ -z "$VERSION_PREFIX" ]; then VERSION_PREFIX="1.0"; fi
+          BUILD="${{ github.run_number }}"
+          DISPLAY="${VERSION_PREFIX}.${BUILD}"
+          echo "display=$DISPLAY" >> "$GITHUB_OUTPUT"
+          echo "build=$BUILD" >> "$GITHUB_OUTPUT"
+          echo "tag=v$DISPLAY" >> "$GITHUB_OUTPUT"
+          echo "name=Release $DISPLAY" >> "$GITHUB_OUTPUT"
+
+  android:
+    name: Android Build
+    needs: version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Show dotnet info
+        run: dotnet --info
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Install MAUI Workloads
+        run: |
+          dotnet workload restore
+          dotnet workload install maui maui-android --ignore-failed-sources
+
+      - name: Restore
+        run: dotnet restore nekohub-maui.sln
+
+      - name: Publish Android (APK)
+        run: |
+          dotnet publish nekohub-maui.csproj \
+            -f net10.0-android \
+            -c Release \
+            -p:AndroidPackageFormat=apk \
+            -p:ApplicationDisplayVersion=${{ needs.version.outputs.display }} \
+            -p:ApplicationVersion=${{ needs.version.outputs.build }}
+
+      - name: Locate APK
+        id: apk
+        shell: bash
+        run: |
+          set -e
+          APK=$(find "$PWD" -type f -name "*.apk" | head -n 1)
+          echo "Found APK: $APK"
+          if [ -z "$APK" ]; then echo "No APK produced"; exit 1; fi
+          OUT="nekohub-android-${{ needs.version.outputs.display }}-r${{ needs.version.outputs.build }}.apk"
+          cp "$APK" "$OUT"
+          echo "path=$OUT" >> "$GITHUB_OUTPUT"
+
+      - name: Upload Android artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android
+          if-no-files-found: error
+          path: ${{ steps.apk.outputs.path }}
+
+  windows:
+    name: Windows Build
+    needs: version
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Show dotnet info
+        run: dotnet --info
+
+      - name: Install MAUI Workloads
+        run: |
+          dotnet workload restore
+          dotnet workload install maui maui-windows --ignore-failed-sources
+
+      - name: Restore
+        run: dotnet restore nekohub-maui.sln
+
+      - name: Publish Windows (unpackaged)
+        run: |
+          dotnet publish nekohub-maui.csproj ^
+            -f net10.0-windows10.0.19041.0 ^
+            -r win10-x64 ^
+            -c Release ^
+            -p:ApplicationDisplayVersion=${{ needs.version.outputs.display }} ^
+            -p:ApplicationVersion=${{ needs.version.outputs.build }}
+        shell: pwsh
+
+      - name: Zip publish folder
+        id: zip
+        shell: pwsh
+        run: |
+          $publish = "bin/Release/net10.0-windows10.0.19041.0/win10-x64/publish"
+          if (!(Test-Path $publish)) { Get-ChildItem -Recurse -Path bin | Write-Output; throw "Publish folder not found: $publish" }
+          $zip = "nekohub-windows-${{ needs.version.outputs.display }}-r${{ needs.version.outputs.build }}.zip"
+          if (Test-Path $zip) { Remove-Item $zip }
+          Compress-Archive -Path "$publish/*" -DestinationPath $zip
+          echo "path=$zip" >> $env:GITHUB_OUTPUT
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          if-no-files-found: error
+          path: ${{ steps.zip.outputs.path }}
+
+  release:
+    name: Create GitHub Release
+    needs: [version, android, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Android artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: android
+          path: dist
+
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: windows
+          path: dist
+
+      - name: Create release and upload assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.version.outputs.tag }}
+          name: ${{ needs.version.outputs.name }}
+          generate_release_notes: true
+          files: |
+            dist/*.apk
+            dist/*.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
